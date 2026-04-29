@@ -597,7 +597,7 @@ std::vector<argument> program::eval(const parameter_map& params,
     if(exec_env.async)
     {
         assert(contexts.size() == 1);
-        contexts.front().wait_for(exec_env.queue);
+        contexts.front().use_queue(exec_env.queue);
     }
 
     if(trace_level > 0)
@@ -662,7 +662,7 @@ std::vector<argument> program::eval(const parameter_map& params,
     if(exec_env.async)
     {
         assert(contexts.size() == 1);
-        contexts.front().finish_on(exec_env.queue);
+        contexts.front().use_queue(any_ptr{});
     }
 
     return ret;
