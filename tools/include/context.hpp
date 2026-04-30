@@ -73,12 +73,14 @@ void use_queue_context(T&, any_ptr)
 }
 
 <%
- interface('context',
-           virtual('to_value', returns = 'value', const = True, default = 'to_value_context'),
-           virtual('from_value', v = 'const value&', default = 'from_value_context'),
-           virtual('get_queue', returns = 'any_ptr', default = 'get_queue_context'),
-           virtual('use_queue', queue = 'any_ptr', returns = 'void', default = 'use_queue_context'),
-           virtual('finish', returns = 'void', const = True)) %>
+    interface(
+        'context',
+        virtual('to_value', returns = 'value', const = True, default = 'to_value_context'),
+        virtual('from_value', v = 'const value&', default = 'from_value_context'),
+        virtual('get_queue', returns = 'any_ptr', default = 'get_queue_context'),
+        virtual('use_queue', queue = 'any_ptr', returns = 'void', default = 'use_queue_context'),
+        virtual('finish', returns = 'void', const = True))
+%>
 
     inline void migraphx_to_value(value& v, const context& ctx)
 {
