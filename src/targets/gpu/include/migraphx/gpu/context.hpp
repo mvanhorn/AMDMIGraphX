@@ -406,7 +406,7 @@ struct context
     bool measure_perf    = false;
     // for event perf timing
     shared<hip_event_ptr> start_event = nullptr;
-    shared<hip_event_ptr> stop_event  = nullptr;
+    shared<hip_event_ptr> stop_event            = nullptr;
     std::shared_ptr<auto_save_problem_cache> pc = nullptr;
 };
 
