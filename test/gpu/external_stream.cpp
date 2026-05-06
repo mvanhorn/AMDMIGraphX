@@ -151,8 +151,7 @@ TEST_CASE(test_async_eval_event_sync)
 
     auto ext = create_external_stream();
 
-    auto results =
-        p.eval({{"x", gx}, {"y", gy}, {"main:#output_0", gout}}, {ext.get(), true});
+    auto results = p.eval({{"x", gx}, {"y", gy}, {"main:#output_0", gout}}, {ext.get(), true});
 
     EXPECT(not results.empty());
 
