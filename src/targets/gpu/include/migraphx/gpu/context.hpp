@@ -278,6 +278,8 @@ struct context
     };
     context(std::size_t device_id = 0, std::size_t n = value_of(MIGRAPHX_NSTREAMS{}, 1))
         : current_device(std::make_shared<hip_device>(device_id, n)),
+          begin_event(create_event()),
+          finish_event(create_event()),
           pc(std::make_shared<auto_save_problem_cache>())
     {
     }
@@ -360,6 +362,26 @@ struct context
         this->current_device = std::make_shared<hip_device>(device, n_streams);
     }
 
+    void wait_for(any_ptr queue)
+    {
+        if(queue.unsafe_get() == nullptr)
+            return;
+        auto status = hipEventRecord(begin_event.get(), queue.get<hipStream_t>());
+        if(status != hipSuccess)
+            MIGRAPHX_THROW("Failed to record: " + hip_error(status));
+        get_stream().wait(begin_event.get());
+    }
+
+    void finish_on(any_ptr queue)
+    {
+        if(queue.unsafe_get() == nullptr)
+            return;
+        get_stream().record(finish_event.get());
+        auto status = hipStreamWaitEvent(queue.get<hipStream_t>(), finish_event.get(), 0);
+        if(status != hipSuccess)
+            MIGRAPHX_THROW("Failed to wait on event: " + hip_error(status));
+    }
+
     void use_queue(any_ptr queue)
     {
         if(queue.unsafe_get() == nullptr)
@@ -406,7 +428,10 @@ struct context
     bool measure_perf    = false;
     // for event perf timing
     shared<hip_event_ptr> start_event = nullptr;
-    shared<hip_event_ptr> stop_event            = nullptr;
+    shared<hip_event_ptr> stop_event  = nullptr;
+    // for stream synchronization
+    shared<hip_event_ptr> begin_event           = nullptr;
+    shared<hip_event_ptr> finish_event          = nullptr;
     std::shared_ptr<auto_save_problem_cache> pc = nullptr;
 };
 

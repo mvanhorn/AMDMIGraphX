@@ -91,6 +91,76 @@ TEST_CASE(test_stream_override_get_queue)
     EXPECT(ctx.get_queue().get<hipStream_t>() == original_queue);
 }
 
+TEST_CASE(test_wait_for_finish_on_event_sync)
+{
+    migraphx::gpu::context ctx{};
+    auto ext = create_external_stream();
+
+    migraphx::any_ptr queue(ext.get());
+
+    hipStream_t internal = ctx.get_queue().get<hipStream_t>();
+
+    ctx.wait_for(queue);
+    EXPECT(not ctx.get_stream().has_external_stream());
+    EXPECT(ctx.get_queue().get<hipStream_t>() == internal);
+
+    ctx.finish_on(queue);
+    EXPECT(not ctx.get_stream().has_external_stream());
+    EXPECT(ctx.get_queue().get<hipStream_t>() == internal);
+}
+
+TEST_CASE(test_wait_for_null_queue_is_noop)
+{
+    migraphx::gpu::context ctx{};
+
+    migraphx::any_ptr queue{};
+
+    hipStream_t internal = ctx.get_queue().get<hipStream_t>();
+
+    ctx.wait_for(queue);
+    EXPECT(ctx.get_queue().get<hipStream_t>() == internal);
+
+    ctx.finish_on(queue);
+    EXPECT(ctx.get_queue().get<hipStream_t>() == internal);
+}
+
+TEST_CASE(test_async_eval_event_sync)
+{
+    const unsigned int n = 128;
+
+    migraphx::program p;
+    auto* mm = p.get_main_module();
+
+    auto x = mm->add_parameter("x", migraphx::shape{migraphx::shape::float_type, {n}});
+    auto y = mm->add_parameter("y", migraphx::shape{migraphx::shape::float_type, {n}});
+    mm->add_instruction(migraphx::make_op("add"), x, y);
+
+    p.compile(migraphx::make_target("gpu"));
+
+    std::vector<float> xdata(n, 5.0f);
+    std::vector<float> ydata(n, 7.0f);
+    auto xarg = migraphx::argument{migraphx::shape{migraphx::shape::float_type, {n}}, xdata.data()};
+    auto yarg = migraphx::argument{migraphx::shape{migraphx::shape::float_type, {n}}, ydata.data()};
+
+    auto gx = migraphx::gpu::to_gpu(xarg);
+    auto gy = migraphx::gpu::to_gpu(yarg);
+
+    migraphx::shape out_shape{migraphx::shape::float_type, {n}};
+    auto out  = migraphx::fill_argument(out_shape, 0);
+    auto gout = migraphx::gpu::to_gpu(out);
+
+    auto ext = create_external_stream();
+
+    auto results =
+        p.eval({{"x", gx}, {"y", gy}, {"main:#output_0", gout}}, {ext.get(), true});
+
+    EXPECT(not results.empty());
+
+    EXPECT(hipStreamSynchronize(ext.get()) == hipSuccess);
+    auto host_result = migraphx::gpu::from_gpu(gout);
+    verify_data(host_result, out_shape, 12.0f);
+}
+
 TEST_CASE(test_context_use_queue_sets_external_stream)
 {
     migraphx::gpu::context ctx{};
