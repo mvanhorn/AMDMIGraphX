@@ -580,8 +580,8 @@ struct compile_manager
 
 void compile_ops::apply(module_pass_manager& mpm) const
 {
-    bool is_root  = &mpm.get_module() == mpm.get_root_module();
-    auto& m       = mpm.get_module();
+    bool is_root = &mpm.get_module() == mpm.get_root_module();
+    auto& m      = mpm.get_module();
     compile_manager cm;
     cm.exhaustive = exhaustive_tune;
     // Find all precompile ops
